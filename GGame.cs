@@ -77,24 +77,27 @@ namespace PixelPalette
                 if (dictionary.Keys.Count > 0)
                 {
                     Console.WriteLine("Saving files");
-                    saveConvertedTextures(dictionary, "output");
+                    saveConvertedTextures(dictionary, "input", "output");
                     Console.WriteLine("Finished");
                 }
             }
         }
 
-        void saveConvertedTextures(Dictionary<string, Texture2D> convertedTextures, string outputFolderPath)
+        void saveConvertedTextures(Dictionary<string, Texture2D> convertedTextures, string inputFolderPath, string outputFolderPath)
         {
-            Directory.CreateDirectory(outputFolderPath);
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string absoluteInputFolderPath = Path.Combine(baseDirectory, inputFolderPath);
+            string absoluteOutputFolderPath = Path.Combine(baseDirectory, outputFolderPath);
 
             foreach (KeyValuePair<string, Texture2D> keyValuePair in convertedTextures)
             {
                 string imagePath = keyValuePair.Key;
                 Texture2D texture = keyValuePair.Value;
-
                 string fileName = Path.GetFileName(imagePath);
-
-                string outputPath = Path.Combine(outputFolderPath, fileName);
+                string imageFolder = Path.GetDirectoryName(imagePath);
+                string outputFolder = imageFolder.Replace(absoluteInputFolderPath, absoluteOutputFolderPath);
+                Directory.CreateDirectory(outputFolder);
+                string outputPath = Path.Combine(outputFolder, fileName);
 
                 using (FileStream fileStream = new(outputPath, FileMode.Create))
                 {
@@ -122,10 +125,8 @@ namespace PixelPalette
             return imageTextures;
         }
 
-        List<string> getImageFilePaths(string relativeFolderPath)
+        List<string> getImageFilePaths(string folderPath)
         {
-            string executableFolderPath = AppDomain.CurrentDomain.BaseDirectory;
-            string folderPath = Path.Combine(executableFolderPath, relativeFolderPath);
             List<string> imageFilePaths = new();
 
             if (Directory.Exists(folderPath))
@@ -140,6 +141,14 @@ namespace PixelPalette
                     {
                         imageFilePaths.Add(file);
                     }
+                }
+
+                string[] subdirectories = Directory.GetDirectories(folderPath);
+
+                foreach (string subdirectory in subdirectories)
+                {
+                    List<string> subdirectoryImageFiles = getImageFilePaths(subdirectory);
+                    imageFilePaths.AddRange(subdirectoryImageFiles);
                 }
             }
 
